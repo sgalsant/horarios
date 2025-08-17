@@ -35,19 +35,15 @@
                 <option value="">Seleccione un profesor...</option>
             </select>
             <div id="multiViewControls" style="display: none;">
+                <select id="multiViewType">
+                    <option value="groups">Ver por Grupos</option>
+                    <option value="teachers">Ver por Profesores</option>
+                </select>
                 <select id="shiftFilter">
                     <option value="all">Todos los turnos</option>
-                    <option value="morning">Turno de Mañana</option>
-                    <option value="afternoon">Turno de Tarde</option>
+                    <option value="morning">Solo Mañana</option>
+                    <option value="afternoon">Solo Tarde</option>
                 </select>
-                <select id="multiViewType">
-                    <option value="groups">Vista Múltiple de Grupos</option>
-                    <option value="teachers">Vista Múltiple de Profesores</option>
-                </select>
-                <label class="toggle-label">
-                    <input type="checkbox" id="multiViewEditable" checked>
-                    Permitir Edición
-                </label>
             </div>
         </div>
         

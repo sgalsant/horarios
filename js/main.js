@@ -23,6 +23,8 @@ const importInput = document.getElementById('importInput');
 const groupSelect = document.getElementById('groupSelect');
 const newGroupBtn = document.getElementById('newGroupBtn');
 const deleteGroupBtn = document.getElementById('deleteGroupBtn');
+const multiViewType = document.getElementById('multiViewType');
+const shiftFilter = document.getElementById('shiftFilter');
 
 // --- Inicialización ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -61,6 +63,7 @@ function setupEventListeners() {
         document.getElementById(id).addEventListener('change', saveGroupConfig);
     });
 
+    // Listeners del Modal de Bloqueo
     cancelBlock.addEventListener('click', () => blockModal.style.display = 'none');
     confirmBlock.addEventListener('click', handleBlockConfirmation);
     deleteBlockBtn.addEventListener('click', handleDeleteBlock);
@@ -68,6 +71,9 @@ function setupEventListeners() {
     exportBtn.addEventListener('click', exportData);
     importBtn.addEventListener('click', () => importInput.click());
     importInput.addEventListener('change', importData);
+    
+    multiViewType.addEventListener('change', showMultiGroupView);
+    shiftFilter.addEventListener('change', showMultiGroupView);
 }
 
 export function switchView(view) {

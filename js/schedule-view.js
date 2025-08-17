@@ -2,7 +2,6 @@ import { state, DAYS, PERIODS, saveState } from './state.js';
 import { updateSubjectSummary } from './subject-management.js';
 import { getSubjectColorClass } from './utils.js';
 import { checkConflicts } from './conflicts.js';
-import { handleBlockConfirmation } from './teacher-view.js';
 
 export function initializeScheduleTable() {
     const scheduleTable = document.getElementById('scheduleTable');
@@ -35,19 +34,11 @@ export function initializeScheduleTable() {
                 cell.appendChild(select);
 
                 contentDiv.addEventListener('click', function() {
-                    if (state.currentView === 'groupSchedule' && state.currentGroup) {
-                        updateGroupScheduleOptions(select, state.groups[state.currentGroup]);
-                        select.value = contentDiv.dataset.value || '';
-                        contentDiv.style.display = 'none';
-                        select.style.display = 'block';
-                        select.focus();
-                    } else if (state.currentView === 'teacherSchedule' && state.currentTeacher) {
-                        updateTeacherScheduleOptions(select, state.currentTeacher);
-                        select.value = contentDiv.dataset.value || '';
-                        contentDiv.style.display = 'none';
-                        select.style.display = 'block';
-                        select.focus();
-                    }
+                    updateGroupScheduleOptions(select, state.groups[state.currentGroup]);
+                    select.value = contentDiv.dataset.value || '';
+                    contentDiv.style.display = 'none';
+                    select.style.display = 'block';
+                    select.focus();
                 });
 
                 select.addEventListener('blur', function() {
@@ -56,24 +47,8 @@ export function initializeScheduleTable() {
                 });
 
                 select.addEventListener('change', function() {
-                    const day = cell.dataset.day;
-                    const period = cell.dataset.period;
-
-                    if (state.currentView === 'groupSchedule') {
-                        const value = this.value ? JSON.parse(this.value) : null;
-                        saveScheduleChange(state.groups[state.currentGroup], day, period, value);
-                    } else if (state.currentView === 'teacherSchedule') {
-                        if (this.value === 'BLOCKED') {
-                            const blockModal = document.getElementById('blockModal');
-                            blockModal.dataset.teacher = state.currentTeacher;
-                            blockModal.dataset.day = day;
-                            blockModal.dataset.period = period;
-                            blockModal.style.display = 'block';
-                        } else {
-                            const value = this.value ? JSON.parse(this.value) : null;
-                            saveTeacherScheduleChange(state.currentTeacher, day, period, value);
-                        }
-                    }
+                    const value = this.value ? JSON.parse(this.value) : null;
+                    saveScheduleChange(state.groups[state.currentGroup], day, i, value);
                     initializeScheduleTable();
                     checkConflicts();
                 });
@@ -84,10 +59,8 @@ export function initializeScheduleTable() {
         tbody.appendChild(row);
     });
 
-    if (state.currentView === 'groupSchedule' && state.currentGroup) {
+    if (state.currentGroup) {
         loadGroupSchedule(state.groups[state.currentGroup], tbody);
-    } else if (state.currentView === 'teacherSchedule' && state.currentTeacher) {
-        loadTeacherSchedule(state.currentTeacher, tbody);
     }
     updateSubjectSummary();
 }
@@ -135,94 +108,6 @@ function saveScheduleChange(group, day, period, value) {
         group.schedule[day][period] = JSON.stringify(value);
     } else {
         delete group.schedule[day][period];
-    }
-    saveState();
-}
-
-export function loadTeacherSchedule(teacher, tbody) {
-    if (!tbody || !teacher) return;
-    const cells = tbody.querySelectorAll('td.schedule-cell');
-    
-    cells.forEach(cell => {
-        const day = cell.dataset.day;
-        const period = cell.dataset.period;
-        const contentDiv = cell.querySelector('.cell-content');
-
-        cell.className = 'schedule-cell';
-        contentDiv.textContent = '-';
-        contentDiv.dataset.value = '';
-
-        const blockKey = `${teacher}-${day}-${period}`;
-        const block = state.teacherBlocks[teacher]?.[blockKey];
-
-        if (block) {
-            contentDiv.textContent = block.reason || 'Bloqueado';
-            cell.classList.add('blocked-cell');
-            contentDiv.dataset.value = 'BLOCKED';
-        } else {
-            for (const group of Object.values(state.groups)) {
-                const item = group.schedule?.[day]?.[period];
-                const parsed = item ? (typeof item === 'string' ? JSON.parse(item) : item) : null;
-                if (parsed && parsed.teacher === teacher) {
-                    contentDiv.textContent = `${parsed.name} (${group.name})`;
-                    const value = { groupId: group.id, name: parsed.name };
-                    contentDiv.dataset.value = JSON.stringify(value);
-                    cell.classList.add(getSubjectColorClass(parsed.name));
-                    break;
-                }
-            }
-        }
-    });
-}
-
-export function updateTeacherScheduleOptions(select, teacher) {
-    select.innerHTML = '<option value="">-</option>';
-    select.innerHTML += '<option value="BLOCKED">Bloquear franja</option>';
-    
-    const options = [];
-    Object.entries(state.groups).forEach(([groupId, group]) => {
-        if (group.subjects) {
-            group.subjects.filter(s => s.teacher === teacher).forEach(subject => {
-                options.push({
-                    value: JSON.stringify({ groupId, name: subject.name }),
-                    text: `${subject.name} (${group.name})`,
-                });
-            });
-        }
-    });
-    
-    options.sort((a, b) => a.text.localeCompare(b.text));
-    options.forEach(opt => {
-        const optionElement = document.createElement('option');
-        optionElement.value = opt.value;
-        optionElement.textContent = opt.text;
-        select.appendChild(optionElement);
-    });
-}
-
-function saveTeacherScheduleChange(teacher, day, period, value) {
-    Object.values(state.groups).forEach(group => {
-        if (group.schedule?.[day]?.[period]) {
-            const item = group.schedule[day][period];
-            const parsed = item ? (typeof item === 'string' ? JSON.parse(item) : item) : null;
-            if (parsed && parsed.teacher === teacher) {
-                group.schedule[day][period] = null;
-            }
-        }
-    });
-    
-    if (state.teacherBlocks[teacher]) {
-        const blockKey = `${teacher}-${day}-${period}`;
-        delete state.teacherBlocks[teacher][blockKey];
-    }
-
-    if (value) {
-        const { groupId, name } = value;
-        const group = state.groups[groupId];
-        if (group) {
-            if (!group.schedule[day]) group.schedule[day] = {};
-            group.schedule[day][period] = JSON.stringify({ name, teacher });
-        }
     }
     saveState();
 }
