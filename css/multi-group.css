@@ -1,0 +1,59 @@
+.multi-group-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.multi-group-schedule {
+    background: white;
+    padding: 15px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.multi-group-schedule h3 {
+    margin-bottom: 10px;
+    color: var(--primary-color);
+}
+
+.multi-group-schedule table {
+    width: 100%;
+    font-size: 0.85em;
+}
+
+.multi-group-schedule .schedule-cell select {
+    padding: 2px;
+    font-size: 0.85em;
+}
+
+.subject-summary {
+    margin-top: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: var(--border-radius);
+}
+
+.subject-summary h4 {
+    margin: 0 0 10px 0;
+    color: var(--primary-color);
+}
+
+.subject-hours {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.subject-hours:last-child {
+    border-bottom: none;
+}
+
+.hours-warning {
+    color: #ffc107;
+}
+
+.hours-exceeded {
+    color: var(--error-color);
+}

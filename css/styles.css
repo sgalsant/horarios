@@ -1,0 +1,458 @@
+:root {
+    --primary-color: #4a90e2;
+    --secondary-color: #f5f5f5;
+    --accent-color: #45c8dc;
+    --error-color: #ff6b6b;
+    --success-color: #66bb6a;
+    --text-color: #333;
+    --border-radius: 8px;
+    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: #f9f9f9;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+header {
+    margin-bottom: 10px;
+}
+
+.view-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    flex-wrap: wrap;
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 10px;
+    box-shadow: var(--box-shadow);
+}
+
+.controls-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.group-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.group-controls select {
+    min-width: 200px;
+}
+
+h1 {
+    color: var(--primary-color);
+    font-size: 2em;
+}
+
+button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#deleteGroupBtn {
+    background-color: var(--error-color);
+}
+
+button:hover {
+    background-color: #357abd;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.main-content {
+    display: flex;
+    gap: 30px;
+}
+
+.groups-panel {
+    display: flex;
+    gap: 30px;
+    flex: 1;
+}
+
+.groups-list-section {
+    background: white;
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    flex: 0 0 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.groups-list {
+    overflow-y: auto;
+    max-height: calc(100vh - 250px);
+}
+
+.group-item {
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.group-item:hover {
+    background-color: #f0f0f0;
+}
+
+.group-item.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.group-config-section {
+    background: white;
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    flex: 1;
+}
+
+.view-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.schedule-section {
+    margin-bottom: 20px;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    overflow: hidden;
+}
+
+.schedule-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: var(--primary-color);
+    color: white;
+    cursor: pointer;
+}
+
+.schedule-section .section-header:hover {
+    background-color: #357abd;
+}
+
+.schedule-section .section-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.schedule-section.collapsed .section-content {
+    max-height: 0;
+}
+
+#groupSelect, #teacherSelect, #shiftFilter, #multiViewType {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    min-width: 200px;
+}
+
+.group-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.schedule-table-common {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.schedule-table-common th,
+.schedule-table-common td {
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+
+.schedule-table-common th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+}
+
+.cell-content {
+    padding: 8px;
+    min-height: 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.cell-content:hover {
+    background-color: rgba(74, 144, 226, 0.1);
+}
+
+.schedule-view {
+    flex: 1;
+}
+
+/* Estilos para las celdas del horario */
+.schedule-cell {
+    position: relative;
+    padding: 5px;
+    text-align: center;
+}
+
+.cell-content {
+    cursor: pointer;
+    padding: 5px;
+    min-height: 20px;
+    border-radius: 4px;
+}
+
+.cell-content:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.schedule-cell select {
+    width: 100%;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.schedule-cell select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+input, select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    font-size: 14px;
+}
+
+.subjects-container {
+    margin-top: 20px;
+}
+
+.subject-item {
+    background-color: var(--secondary-color);
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: var(--border-radius);
+}
+
+.subject-item input {
+    margin-bottom: 8px;
+}
+
+.remove-subject {
+    background-color: var(--error-color);
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.schedule-table-common {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: var(--box-shadow);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    table-layout: fixed;
+}
+
+.schedule-table-common th,
+.schedule-table-common td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+.schedule-table-common th {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.schedule-table-common tr:nth-child(4) td {
+    background-color: var(--secondary-color);
+    font-weight: bold;
+}
+
+.schedule-cell {
+    position: relative;
+}
+
+.schedule-cell select {
+    width: 100%;
+    padding: 6px;
+}
+
+.conflict {
+    background-color: var(--error-color) !important;
+    color: white;
+}
+
+.blocked {
+    background-color: black !important;
+    color: white !important;
+}
+
+.hours-exceeded {
+    color: var(--error-color);
+    font-weight: bold;
+}
+
+#subjectSummary {
+    margin-top: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.view-controls {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.view-controls button {
+    margin-right: 10px;
+}
+
+.view-controls button.active {
+    background-color: var(--accent-color);
+}
+
+#multiViewControls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.toggle-label input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: var(--border-radius);
+    width: 400px;
+}
+
+.modal textarea {
+    width: 100%;
+    height: 100px;
+    margin: 10px 0;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    resize: vertical;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.import-export {
+    display: flex;
+    gap: 10px;
+}
+
+#teacher-schedules .schedule-section {
+    margin-bottom: 30px;
+}
+
+.subject-summary-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.hours-complete {
+    color: var(--success-color);
+}
+
+.hours-incomplete {
+    color: #f39c12;
+}

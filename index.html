@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horario Docente</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/multi-group.css">
+    <link rel="stylesheet" href="css/subject-colors.css">
+    <script type="module" src="js/main.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Gestión de Horarios Docentes</h1>
+            <div class="controls-container">
+                <div class="import-export">
+                    <button id="exportBtn">Exportar JSON</button>
+                    <button id="importBtn">Importar JSON</button>
+                    <input type="file" id="importInput" accept=".json" style="display: none;">
+                </div>
+            </div>
+        </header>
+
+        <div class="view-controls">
+            <button id="groupsViewBtn">Grupos</button>
+            <button id="groupScheduleViewBtn">Horario de Grupo</button>
+            <button id="teacherScheduleViewBtn">Horario de Profesorado</button>
+            <button id="multiScheduleViewBtn">Horario Múltiple</button>
+            <select id="groupSelect" style="display: none;">
+                <option value="">Seleccionar Grupo...</option>
+            </select>
+            <select id="teacherSelect" style="display: none;">
+                <option value="">Seleccione un profesor...</option>
+            </select>
+            <div id="multiViewControls" style="display: none;">
+                <select id="shiftFilter">
+                    <option value="all">Todos los turnos</option>
+                    <option value="morning">Turno de Mañana</option>
+                    <option value="afternoon">Turno de Tarde</option>
+                </select>
+                <select id="multiViewType">
+                    <option value="groups">Vista Múltiple de Grupos</option>
+                    <option value="teachers">Vista Múltiple de Profesores</option>
+                </select>
+                <label class="toggle-label">
+                    <input type="checkbox" id="multiViewEditable" checked>
+                    Permitir Edición
+                </label>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <section class="groups-panel">
+                <div class="groups-list-section">
+                    <div class="group-controls">
+                        <button id="newGroupBtn">Nuevo Grupo</button>
+                        <button id="deleteGroupBtn">Eliminar Grupo</button>
+                    </div>
+                    <div class="groups-list">
+                        <!-- La lista de grupos se generará dinámicamente -->
+                    </div>
+                </div>
+                <div class="group-config-section">
+                    <h2>Configuración del Grupo</h2>
+                    <form id="groupConfig">
+                    <div class="form-group">
+                        <label for="groupName">Nombre del Grupo:</label>
+                        <input type="text" id="groupName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="shift">Turno:</label>
+                        <select id="shift" required>
+                            <option value="morning">Mañana</option>
+                            <option value="afternoon">Tarde</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="course">Curso:</label>
+                        <input type="text" id="course" placeholder="Ej: 1.º ESO" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="teachingName">Nombre de la Enseñanza:</label>
+                        <input type="text" id="teachingName" required>
+                    </div>
+
+                    <div class="subjects-container">
+                        <h3>Materias</h3>
+                        <div id="subjectsList">
+                            <!-- Los elementos de materia se añadirán dinámicamente -->
+                        </div>
+                        <button type="button" id="addSubjectBtn" class="add-subject-btn">Añadir Materia</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="schedule-view">
+
+                <div id="scheduleContainer">
+                    <table id="scheduleTable" class="schedule-table-common">
+                        <thead>
+                            <tr>
+                                <th>Hora</th>
+                                <th>Lunes</th>
+                                <th>Martes</th>
+                                <th>Miércoles</th>
+                                <th>Jueves</th>
+                                <th>Viernes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Las filas del horario se generarán dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="subjectSummary">
+                    <!-- El resumen de horas por materia se mostrará aquí -->
+                </div>
+
+                <!-- Template para restaurar la estructura original -->
+                <template id="templateScheduleContainer">
+                    <table id="scheduleTable" class="schedule-table-common">
+                        <thead>
+                            <tr>
+                                <th>Hora</th>
+                                <th>Lunes</th>
+                                <th>Martes</th>
+                                <th>Miércoles</th>
+                                <th>Jueves</th>
+                                <th>Viernes</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="subjectSummary"></div>
+                </template>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal para bloquear horario -->
+    <div id="blockModal" class="modal">
+        <div class="modal-content">
+            <h3>Bloquear Franja Horaria</h3>
+            <textarea id="blockReason" placeholder="Motivo del bloqueo"></textarea>
+            <div class="form-group">
+                <label for="blockType">Tipo de bloqueo:</label>
+                <select id="blockType">
+                    <option value="lectivo">Lectivo</option>
+                    <option value="complementaria">Complementaria</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button id="confirmBlock">Confirmar</button>
+                <button id="deleteBlockBtn">Eliminar</button>
+                <button id="cancelBlock">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/group-management.js"></script>
+    <script type="module" src="js/multi-group-view.js"></script>
+</body>
+</html>

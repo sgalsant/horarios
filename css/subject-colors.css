@@ -1,0 +1,25 @@
+.schedule-cell {
+    position: relative;
+}
+
+/* Colores pasteles para las materias */
+.subject-color-0 { background-color: #FFE6E6 !important; }  /* Rosa claro */
+.subject-color-1 { background-color: #E6F3FF !important; }  /* Azul claro */
+.subject-color-2 { background-color: #E6FFE6 !important; }  /* Verde claro */
+.subject-color-3 { background-color: #FFF2E6 !important; }  /* Naranja claro */
+.subject-color-4 { background-color: #F2E6FF !important; }  /* Violeta claro */
+.subject-color-5 { background-color: #FFFFD9 !important; }  /* Amarillo claro */
+.subject-color-6 { background-color: #E6FFF9 !important; }  /* Turquesa claro */
+.subject-color-7 { background-color: #FFE6F3 !important; }  /* Rosa más claro */
+
+/* Vista múltiple en columna */
+.multi-group-view {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px;
+}
+
+.multi-group-schedule {
+    width: 100% !important;
+    margin-bottom: 20px;
+}
