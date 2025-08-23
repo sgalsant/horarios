@@ -54,6 +54,24 @@ export function updateTeacherView() {
         populateTeacherTable(teacher, afternoonTbody, 'afternoon');
     }
 
+    // Inicializar los botones de colapsar/expandir
+    document.querySelectorAll('.toggle-schedule').forEach(button => {
+        button.addEventListener('click', () => {
+            const tableId = button.getAttribute('aria-controls');
+            const table = document.getElementById(tableId);
+            const isExpanded = button.getAttribute('aria-expanded') === 'true';
+            
+            // Actualizar el estado del botón
+            button.setAttribute('aria-expanded', !isExpanded);
+            button.querySelector('.toggle-icon').textContent = isExpanded ? '▶' : '▼';
+            
+            // Mostrar/ocultar la tabla
+            if (table) {
+                table.style.display = isExpanded ? 'none' : 'table';
+            }
+        });
+    });
+
     // Actualizar el resumen global
     updateSubjectSummary();
     
@@ -79,7 +97,12 @@ function hasScheduled(group, teacher) {
 function createScheduleTableHTML(title, id) {
     return `
         <div class="schedule-section">
-            <h3>Turno de ${title}</h3>
+            <div class="schedule-header">
+                <h3>Turno de ${title}</h3>
+                <button class="toggle-schedule" aria-expanded="true" aria-controls="${id}">
+                    <span class="toggle-icon">▼</span>
+                </button>
+            </div>
             <table id="${id}" class="scheduleTable schedule-table-common">
                 <thead><tr><th>Hora</th>${DAYS.map(d => `<th>${d}</th>`).join('')}</tr></thead>
                 <tbody></tbody>

@@ -57,3 +57,46 @@
 .hours-exceeded {
     color: var(--error-color);
 }
+
+/* Estilos para las secciones colapsables de horarios */
+.schedule-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.toggle-schedule {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px 10px;
+    font-size: 1.2em;
+    color: #333;
+    transition: color 0.3s;
+}
+
+.toggle-schedule:hover {
+    color: #666;
+}
+
+.toggle-schedule .toggle-icon {
+    display: inline-block;
+    transition: transform 0.3s;
+}
+
+.toggle-schedule[aria-expanded="false"] .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.schedule-section {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.schedule-section h3 {
+    margin: 0;
+    padding: 0;
+}

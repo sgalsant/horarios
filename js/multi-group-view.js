@@ -32,6 +32,9 @@ function renderGroupsView(container, shiftFilter) {
         container.appendChild(scheduleTable);
         populateGroupSchedule(scheduleTable.querySelector('tbody'), group);
     });
+
+    // Inicializar los botones de colapsar/expandir
+    initializeToggleButtons();
 }
 
 function renderTeachersView(container, shiftFilter) {
@@ -48,6 +51,9 @@ function renderTeachersView(container, shiftFilter) {
         const afternoonSchedule = filterScheduleByShift(teacherScheduleData, 'afternoon');
 
         const shouldShowMorning = (shiftFilter === 'all' || shiftFilter === 'morning') && Object.keys(morningSchedule).length > 0;
+        
+    // Inicializar los botones de colapsar/expandir después de crear todos los horarios
+    initializeToggleButtons();
         const shouldShowAfternoon = (shiftFilter === 'all' || shiftFilter === 'afternoon') && Object.keys(afternoonSchedule).length > 0;
 
         if (shouldShowMorning || shouldShowAfternoon) {
@@ -78,9 +84,15 @@ function createScheduleTableDOM(title, group) {
         const shiftName = group.shift === 'morning' ? 'Mañana' : 'Tarde';
         shiftText = ` (${shiftName})`;
     }
+    const tableId = `schedule-${title.replace(/\s+/g, '-').toLowerCase()}`;
     section.innerHTML = `
-        <h3>${title}${shiftText}</h3>
-        <table class="scheduleTable schedule-table-common">
+        <div class="schedule-header">
+            <h3>${title}${shiftText}</h3>
+            <button class="toggle-schedule" aria-expanded="true" aria-controls="${tableId}">
+                <span class="toggle-icon">▼</span>
+            </button>
+        </div>
+        <table id="${tableId}" class="scheduleTable schedule-table-common">
             <thead><tr><th>Hora</th>${DAYS.map(day => `<th>${day}</th>`).join('')}</tr></thead>
             <tbody></tbody>
         </table>
@@ -388,4 +400,23 @@ function determineTeacherShift(schedule) {
     }
     // Si tiene asignaciones en ambos turnos o no tiene asignaciones, asumimos matutino por defecto
     return 'matutino';
+}
+
+function initializeToggleButtons() {
+    document.querySelectorAll('.toggle-schedule').forEach(button => {
+        button.addEventListener('click', () => {
+            const tableId = button.getAttribute('aria-controls');
+            const table = document.getElementById(tableId);
+            const isExpanded = button.getAttribute('aria-expanded') === 'true';
+            
+            // Actualizar el estado del botón
+            button.setAttribute('aria-expanded', !isExpanded);
+            button.querySelector('.toggle-icon').textContent = isExpanded ? '▶' : '▼';
+            
+            // Mostrar/ocultar la tabla
+            if (table) {
+                table.style.display = isExpanded ? 'none' : 'table';
+            }
+        });
+    });
 }
