@@ -91,7 +91,11 @@ export function switchView(view) {
     document.getElementById('multiViewControls').style.display = view === 'multiSchedule' ? 'flex' : 'none';
     
     const scheduleContainer = document.getElementById('scheduleContainer');
+    const subjectSummary = document.getElementById('subjectSummary');
+    
+    // Limpiar contenedores
     scheduleContainer.innerHTML = '';
+    if (subjectSummary) subjectSummary.innerHTML = '';
 
     if (view === 'groups') {
         updateGroupConfig();

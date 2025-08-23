@@ -462,3 +462,45 @@ input, select {
 .hours-incomplete {
     color: #f39c12;
 }
+
+.subject-summary-item.complementary {
+    background-color: #f0f0f0;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.blocked-cell.complementario {
+    background-color: #f14545;
+}
+
+.blocked-cell.lectivo {
+    background-color: #000000;
+}
+
+.subject-summary-section {
+    margin: 10px 0;
+}
+
+.subject-summary-section h4 {
+    margin-bottom: 5px;
+    color: #666;
+}
+
+.subject-summary-item.lectivo {
+    background-color: white;
+    border: 1px solid #ddd;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.subject-summary-item.complementario {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.subject-summary-totals {
+    margin-top: 15px;
+    padding-top: 10px;
+}

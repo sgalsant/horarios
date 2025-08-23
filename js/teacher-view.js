@@ -4,6 +4,9 @@ import { getSubjectColorClass } from './utils.js';
 import { updateSubjectSummary } from './subject-management.js';
 
 export function updateTeacherView() {
+    // Inicializar eventos del modal
+    initializeModalEvents();
+    
     const teacher = state.currentTeacher;
     const scheduleContainer = document.getElementById('scheduleContainer');
     const summaryContainer = document.getElementById('subjectSummary');
@@ -50,11 +53,19 @@ export function updateTeacherView() {
         const afternoonTbody = document.querySelector('#afternoon-schedule-table tbody');
         populateTeacherTable(teacher, afternoonTbody, 'afternoon');
     }
-    
+
+    // Actualizar el resumen global
     updateSubjectSummary();
+    
 }
 
 function hasScheduled(group, teacher) {
+    // Verificar si el profesor tiene materias asignadas en el grupo
+    if (group.subjects && group.subjects.some(s => s.teacher === teacher)) {
+        return true;
+    }
+    
+    // Verificar si hay asignaciones en el horario
     if (!group.schedule) return false;
     return Object.values(group.schedule).some(day => 
         Object.values(day).some(cell => {
@@ -98,15 +109,18 @@ function populateTeacherTable(teacher, tbody, shift) {
             
             const select = document.createElement('select');
             select.style.display = 'none';
+            select.dataset.day = day;
+            select.dataset.period = i;
             cell.appendChild(select);
 
-            const blockKey = `${teacher}-${day}-${i}`;
-            const block = state.teacherBlocks[teacher]?.[blockKey];
-            let cellData = null;
-            let groupName = '';
-
-            if (block && block.shift === shift) {
-                cellData = { blocked: true, reason: block.reason };
+                const blockKey = `${teacher}-${day}-${i}`;
+                const block = state.teacherBlocks[teacher]?.[blockKey];
+                let cellData = null;
+                let groupName = '';
+                
+                // Solo mostrar el bloque si corresponde al turno actual
+                const blockMatchesShift = block && (!block.shift || block.shift === shift);            if (block && blockMatchesShift) {
+                cellData = { blocked: true, reason: block.reason, type: block.type };
             } else {
                 for (const group of Object.values(state.groups)) {
                     if (group.shift === shift && group.schedule?.[day]?.[i]) {
@@ -120,32 +134,98 @@ function populateTeacherTable(teacher, tbody, shift) {
                 }
             }
 
+
             if (cellData) {
                 if (cellData.blocked) {
                     contentDiv.textContent = cellData.reason || 'Bloqueado';
                     cell.classList.add('blocked-cell');
+                    if (cellData.type) {
+                        cell.classList.add(cellData.type);
+                    }
+                    contentDiv.dataset.originalValue = JSON.stringify({ blocked: true, type: cellData.type, reason: cellData.reason });
                 } else {
                     contentDiv.textContent = `${cellData.name} (${groupName})`;
                     cell.classList.add(getSubjectColorClass(cellData.name));
+                    // Para materias asignadas, necesitamos guardar también el groupId
+                    // Buscar el grupo y asignación actual
+                    const [currentGroupId] = Object.entries(state.groups).find(([id, g]) => 
+                        g.shift === shift && g.schedule?.[day]?.[i] && 
+                        JSON.parse(g.schedule[day][i]).name === cellData.name && 
+                        JSON.parse(g.schedule[day][i]).teacher === teacher
+                    ) || [];
+
+                    // Si la asignación tiene groupId, usarlo, si no, usar el que encontramos
+                    const groupIdToUse = cellData.groupId || currentGroupId;
+
+                    contentDiv.dataset.originalValue = JSON.stringify({ 
+                        name: cellData.name, 
+                        groupId: groupIdToUse
+                    });
                 }
             } else {
                 contentDiv.textContent = '-';
+                contentDiv.dataset.originalValue = '';
             }
 
+            let originalValue = null; // Variable para compartir entre eventos
+
             contentDiv.addEventListener('click', () => {
-                updateTeacherScheduleOptions(select, teacher, shift);
+                // Primero establecer el valor original
+                originalValue = contentDiv.dataset.originalValue ? JSON.parse(contentDiv.dataset.originalValue) : null;
+                select.dataset.originalValue = contentDiv.dataset.originalValue;
+
+                // Temporalmente establecer un valor diferente para forzar el evento change
+                select.value = '';
                 select.style.display = 'block';
+                
+                // Actualizar las opciones
+                updateTeacherScheduleOptions(select, teacher, shift);
+
+                // Si es un bloque, forzar el evento change
+                if (originalValue?.blocked) {
+                    select.value = 'BLOCKED';  // Establecer directamente el valor
+                    const event = new Event('change');
+                    select.dispatchEvent(event);  // Disparar el evento manualmente
+                }
+
                 contentDiv.style.display = 'none';
                 select.focus();
+
+                console.log('Click - Valor original:', originalValue); // Para debug
             });
 
-            select.addEventListener('blur', () => {
-                select.style.display = 'none';
-                contentDiv.style.display = 'block';
+            let isChanging = false;
+
+            select.addEventListener('blur', (event) => {
+                // Dar tiempo para que se complete el click en el modal o en las opciones
+                setTimeout(() => {
+                    const blockModal = document.getElementById('blockModal');
+                    if (!isChanging || (blockModal && blockModal.style.display !== 'block')) {
+                        select.style.display = 'none';
+                        contentDiv.style.display = 'block';
+                        isChanging = false;
+                    }
+                }, 300);
+
+                // Si el modal está abierto, mantener el select visible
+                const blockModal = document.getElementById('blockModal');
+                if (blockModal && blockModal.style.display === 'block') {
+                    select.style.display = 'block';
+                    contentDiv.style.display = 'none';
+                }
             });
 
             select.addEventListener('change', () => {
-                if (select.value === 'BLOCKED') {
+                isChanging = true;
+                const blockModal = document.getElementById('blockModal');
+                const selectedValue = select.value;
+
+                // Forzar que se muestre el modal para cualquier selección de bloqueo
+                const isReselectingBlock = selectedValue === 'BLOCKED';
+                
+                // Resetear el valor original para permitir la misma selección después
+                select.dataset.originalValue = '';
+                if (selectedValue === 'BLOCKED' || isReselectingBlock) {
                     const blockModal = document.getElementById('blockModal');
                     const blockReasonInput = document.getElementById('blockReason');
                     const blockTypeInput = document.getElementById('blockType');
@@ -154,6 +234,7 @@ function populateTeacherTable(teacher, tbody, shift) {
                     if (existingBlock) {
                         blockReasonInput.value = existingBlock.reason;
                         blockTypeInput.value = existingBlock.type;
+                        console.log('Cargando bloqueo existente:', existingBlock); // Para debug
                     } else {
                         blockReasonInput.value = '';
                         blockTypeInput.value = 'lectivo';
@@ -165,10 +246,56 @@ function populateTeacherTable(teacher, tbody, shift) {
                     blockModal.dataset.shift = shift;
                     blockModal.style.display = 'block';
                 } else {
-                    const value = select.value ? JSON.parse(select.value) : null;
-                    saveTeacherScheduleChange(teacher, day, i, value);
-                    updateTeacherView();
+                    const value = selectedValue ? JSON.parse(selectedValue) : null;
+                    
+                    // Primero guardar en el estado
+                    if (value) {
+                        const { groupId, name } = value;
+                        const group = state.groups[groupId];
+                        if (group) {
+                            // Limpiar asignaciones previas
+                            Object.values(state.groups).forEach(g => {
+                                if (g.schedule && g.schedule[day] && g.schedule[day][i]) {
+                                    const cellData = JSON.parse(g.schedule[day][i]);
+                                    if (cellData && cellData.teacher === teacher) {
+                                        g.schedule[day][i] = null;
+                                    }
+                                }
+                            });
+
+                            // Guardar nueva asignación
+                            if (!group.schedule) group.schedule = {};
+                            if (!group.schedule[day]) group.schedule[day] = {};
+                            group.schedule[day][i] = JSON.stringify({ name, teacher, groupId });
+                        }
+                    } else {
+                        // Limpiar asignaciones si se selecciona vacío
+                        Object.values(state.groups).forEach(g => {
+                            if (g.schedule && g.schedule[day] && g.schedule[day][i]) {
+                                const cellData = JSON.parse(g.schedule[day][i]);
+                                if (cellData && cellData.teacher === teacher) {
+                                    g.schedule[day][i] = null;
+                                }
+                            }
+                        });
+                    }
+                    saveState();
+
+                    // Luego actualizar la UI
+                    select.style.display = 'none';
+                    contentDiv.style.display = 'block';
+                    if (value) {
+                        const { name } = value;
+                        const group = state.groups[value.groupId];
+                        contentDiv.textContent = `${name} (${group.name})`;
+                        cell.className = 'schedule-cell ' + getSubjectColorClass(name);
+                    } else {
+                        contentDiv.textContent = '-';
+                        cell.className = 'schedule-cell';
+                    }
+                    contentDiv.dataset.originalValue = selectedValue;
                     checkConflicts();
+                    updateSubjectSummary(shift);
                 }
             });
 
@@ -178,16 +305,19 @@ function populateTeacherTable(teacher, tbody, shift) {
     });
 }
 
-function updateTeacherScheduleOptions(select, teacher, shift) {
-    const originalValue = select.value;
-    select.innerHTML = '';
+export function updateTeacherScheduleOptions(select, teacher, shift) {
+    // Obtener el valor original antes de limpiar el select
+    const originalValue = select.dataset.originalValue ? JSON.parse(select.dataset.originalValue) : null;
     
+    // Limpiar y añadir opciones base
+    select.innerHTML = '';
     select.add(new Option('-', ''));
     select.add(new Option('Bloquear franja', 'BLOCKED'));
     
+    // Añadir opciones de materias
     const options = [];
     Object.entries(state.groups).forEach(([groupId, group]) => {
-        if (group.shift === shift && group.subjects) {
+        if (group.subjects && group.shift === shift) {
             group.subjects.filter(s => s.teacher === teacher).forEach(subject => {
                 options.push({
                     value: JSON.stringify({ groupId, name: subject.name }),
@@ -197,34 +327,85 @@ function updateTeacherScheduleOptions(select, teacher, shift) {
         }
     });
     
+    // Ordenar y añadir opciones
     options.sort((a, b) => a.text.localeCompare(b.text));
     options.forEach(opt => select.add(new Option(opt.text, opt.value)));
 
-    select.value = originalValue;
+    // Establecer el valor seleccionado
+    if (originalValue) {
+        console.log('Valor original:', originalValue); // Para debug
+        if (originalValue.blocked) {
+            select.value = 'BLOCKED';
+        } else if (originalValue.name) {
+            // Buscar la opción exacta por nombre y groupId
+            const matchingOption = Array.from(select.options).find(option => {
+                if (option.value && option.value !== 'BLOCKED') {
+                    const optionData = JSON.parse(option.value);
+                    const matchesName = optionData.name === originalValue.name;
+                    const matchesGroup = !originalValue.groupId || optionData.groupId === originalValue.groupId;
+                    return matchesName && matchesGroup;
+                }
+                return false;
+            });
+
+            if (matchingOption) {
+                console.log('Opción encontrada:', matchingOption.value); // Para debug
+                select.value = matchingOption.value;
+            }
+        }
+    }
+
+    // Si no se estableció ningún valor, asegurarse de que esté vacío
+    if (!select.value) {
+        select.value = '';
+    }
 }
 
-function saveTeacherScheduleChange(teacher, day, period, value) {
+export function saveTeacherScheduleChange(teacher, day, period, value) {
     const blockKey = `${teacher}-${day}-${period}`;
     if (state.teacherBlocks[teacher]?.[blockKey]) {
         delete state.teacherBlocks[teacher][blockKey];
     }
 
+    // Limpiar las asignaciones existentes para este profesor en este horario
     Object.values(state.groups).forEach(group => {
-        const cell = group.schedule?.[day]?.[period];
-        if (cell) {
-            const parsed = JSON.parse(cell);
-            if (parsed.teacher === teacher) {
+        if (group.schedule && group.schedule[day] && group.schedule[day][period]) {
+            const cellData = JSON.parse(group.schedule[day][period]);
+            if (cellData && cellData.teacher === teacher) {
                 group.schedule[day][period] = null;
             }
         }
     });
 
-    if (value) {
-        const { groupId, name } = value;
-        const group = state.groups[groupId];
-        if (group) {
-            if (!group.schedule[day]) group.schedule[day] = {};
-            group.schedule[day][period] = JSON.stringify({ name, teacher });
+    // Find the cell-content and update its content
+    const cells = document.querySelectorAll('.schedule-cell');
+    const targetCell = Array.from(cells).find(cell => {
+        const select = cell.querySelector('select');
+        return select && select.dataset.day === day && select.dataset.period === period;
+    });
+
+    if (targetCell) {
+        const contentDiv = targetCell.querySelector('.cell-content');
+        if (contentDiv) {
+            if (value) {
+                const { groupId, name } = value;
+                const group = state.groups[groupId];
+                if (group) {
+                    if (!group.schedule[day]) group.schedule[day] = {};
+                    group.schedule[day][period] = JSON.stringify({ name, teacher });
+                    contentDiv.textContent = `${name} (${group.name})`;
+                    // Actualizar las clases CSS
+                    targetCell.className = 'schedule-cell';
+                    targetCell.classList.add(getSubjectColorClass(name));
+                }
+            } else {
+                contentDiv.textContent = '-';
+                // Limpiar las clases CSS
+                targetCell.className = 'schedule-cell';
+            }
+            contentDiv.style.display = 'block';
+            // Actualizar el valor original para futuros cambios
+            contentDiv.dataset.originalValue = value ? JSON.stringify({ name: value.name, groupId: value.groupId }) : '';
         }
     }
     saveState();
@@ -236,27 +417,149 @@ export function handleBlockConfirmation() {
     const reason = document.getElementById('blockReason').value.trim();
     const type = document.getElementById('blockType').value;
     
+    // Limpiar estado de edición
+    let isChanging = false;
+    
     const blockKey = `${teacher}-${day}-${period}`;
     
+    // Limpiar asignaciones existentes para este profesor en este horario
+    Object.values(state.groups).forEach(g => {
+        if (g.schedule && g.schedule[day] && g.schedule[day][period]) {
+            const cellData = JSON.parse(g.schedule[day][period]);
+            if (cellData && cellData.teacher === teacher) {
+                g.schedule[day][period] = null;
+            }
+        }
+    });
+
     if (!state.teacherBlocks[teacher]) {
         state.teacherBlocks[teacher] = {};
     }
     
-    if (reason) {
-        state.teacherBlocks[teacher][blockKey] = { reason, type, shift };
-        saveTeacherScheduleChange(teacher, day, period, null);
+    // Encontrar la celda para actualizar la UI
+    const cells = document.querySelectorAll('.schedule-cell');
+    const targetCell = Array.from(cells).find(cell => {
+        const select = cell.querySelector('select');
+        return select && select.dataset.day === day && select.dataset.period === period;
+    });
+
+    if (targetCell) {
+        const contentDiv = targetCell.querySelector('.cell-content');
+        const select = targetCell.querySelector('select');
+        
+        if (contentDiv && select) {
+            // Ocultar el select y mostrar el contentDiv
+            select.style.display = 'none';
+            contentDiv.style.display = 'block';
+
+            if (reason) {
+                // Guardar el bloqueo
+                state.teacherBlocks[teacher][blockKey] = { reason, type, shift };
+                
+                // Actualizar UI
+                contentDiv.textContent = reason;
+                targetCell.className = 'schedule-cell blocked-cell';
+                targetCell.classList.add(type); // Añadir la clase del tipo específico
+                contentDiv.dataset.originalValue = JSON.stringify({ blocked: true, reason: reason, type });
+            } else {
+                // Eliminar el bloqueo
+                delete state.teacherBlocks[teacher][blockKey];
+                
+                // Actualizar UI
+                contentDiv.textContent = '-';
+                targetCell.className = 'schedule-cell';
+                contentDiv.dataset.originalValue = '';
+            }
+        }
     } else {
-        delete state.teacherBlocks[teacher][blockKey];
-        saveTeacherScheduleChange(teacher, day, period, null);
+        // Si no encontramos la celda, solo actualizamos el estado
+        if (reason) {
+            state.teacherBlocks[teacher][blockKey] = { reason, type, shift };
+        } else {
+            delete state.teacherBlocks[teacher][blockKey];
+        }
     }
     
+    // Asegurar que el select se oculta y el contentDiv se muestra en todas las celdas
+    document.querySelectorAll('.schedule-cell').forEach(cell => {
+        const select = cell.querySelector('select');
+        const contentDiv = cell.querySelector('.cell-content');
+        if (select && contentDiv) {
+            select.style.display = 'none';
+            contentDiv.style.display = 'block';
+        }
+    });
+
     saveState();
+    
+    // Limpiar estado y ocultar modal
+    isChanging = false;
     blockModal.style.display = 'none';
-    updateTeacherView();
+    
+    // Actualizar la vista para reflejar los cambios
+    const currentTeacher = state.currentTeacher;
+    if (currentTeacher) {
+        updateTeacherView();
+    }
+    
+    // Ocultar todos los selects y mostrar los contentDivs
+    document.querySelectorAll('.schedule-cell').forEach(cell => {
+        const select = cell.querySelector('select');
+        const contentDiv = cell.querySelector('.cell-content');
+        if (select && contentDiv) {
+            select.style.display = 'none';
+            contentDiv.style.display = 'block';
+        }
+    });
+
     checkConflicts();
+    // Actualizar el resumen global
+    updateSubjectSummary(shift);
+    updateSubjectSummary();
 }
 
 export function handleDeleteBlock() {
-    document.getElementById('blockReason').value = '';
+    blockReason.value = '';
     handleBlockConfirmation();
+}
+
+function cleanupCellEditing() {
+    document.querySelectorAll('.schedule-cell').forEach(cell => {
+        const select = cell.querySelector('select');
+        const contentDiv = cell.querySelector('.cell-content');
+        if (select && contentDiv) {
+            select.style.display = 'none';
+            contentDiv.style.display = 'block';
+        }
+    });
+}
+
+function initializeModalEvents() {
+    const blockModal = document.getElementById('blockModal');
+    const confirmBtn = document.getElementById('confirmBlock');
+    const cancelBtn = document.getElementById('cancelBlock');
+    const deleteBtn = document.getElementById('deleteBlockBtn');
+
+    confirmBtn.addEventListener('click', () => {
+        handleBlockConfirmation();
+        cleanupCellEditing();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        blockModal.style.display = 'none';
+        cleanupCellEditing();
+    });
+
+    deleteBtn.addEventListener('click', () => {
+        handleDeleteBlock();
+        cleanupCellEditing();
+    });
+
+    // Cerrar el modal si se hace clic fuera
+    window.addEventListener('click', (event) => {
+        if (event.target === blockModal) {
+            blockModal.style.display = 'none';
+            cleanupCellEditing();
+        }
+    });
 }

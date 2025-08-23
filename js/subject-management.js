@@ -108,47 +108,109 @@ export function updateSubjects() {
     });
 }
 
-export function updateSubjectSummary() {
+export function updateSubjectSummary(shift) {
     const subjectSummary = document.getElementById('subjectSummary');
     if (!subjectSummary) return;
 
     subjectSummary.innerHTML = '';
 
     if (state.currentView === 'teacherSchedule' && state.currentTeacher) {
-        // Lógica para el resumen del profesor
+
         const teacher = state.currentTeacher;
         const summary = {};
-        
-        // Calcular horas máximas
-        Object.values(state.groups).forEach(group => {
-            group.subjects.forEach(subject => {
-                if (subject.teacher === teacher) {
-                    if (!summary[subject.name]) {
-                        summary[subject.name] = { max: 0, assigned: 0 };
+        const blockedHours = {
+            lectivo: 0,
+            complementario: 0
+        };
+
+        // Contar las horas bloqueadas por tipo y turno
+        if (state.teacherBlocks[teacher]) {
+            Object.entries(state.teacherBlocks[teacher]).forEach(([key, block]) => {
+                const [teacherId, day, period] = key.split('-');
+                // Solo contar si no hay filtro de turno o si el turno coincide con el del bloque
+                if (!shift || (block.shift && block.shift === shift) || !block.shift) {
+                    if (block.type === 'lectivo') {
+                        blockedHours.lectivo++;
+                    } else if (block.type === 'complementaria') {
+                        blockedHours.complementario++;
                     }
-                    summary[subject.name].max += subject.hours;
                 }
             });
+        }
+        
+        console.log('Bloques encontrados:', state.teacherBlocks[teacher]); // Para debug
+        console.log('Horas bloqueadas:', blockedHours); // Para debug
+
+        // Inicializar el resumen con las materias
+        Object.values(state.groups).forEach(group => {
+            if (!shift || group.shift === shift) {
+                group.subjects.forEach(subject => {
+                    if (subject.teacher === teacher) {
+                        const key = shift ? subject.name : `${subject.name} (${group.shift === 'morning' ? 'Mañana' : 'Tarde'})`;
+                        if (!summary[key]) {
+                            summary[key] = { max: 0, assigned: 0, shift: group.shift };
+                        }
+                        summary[key].max += subject.hours;
+                    }
+                });
+            }
         });
 
-        // Calcular horas asignadas
+
+        // Contar las asignaciones
         Object.values(state.groups).forEach(group => {
-            if (!group.schedule) return;
+            if (!group.schedule || (shift && group.shift !== shift)) return;
             Object.values(group.schedule).forEach(daySchedule => {
                 Object.values(daySchedule).forEach(cell => {
-                    const parsed = cell ? JSON.parse(cell) : null;
-                    if (parsed && parsed.teacher === teacher && summary[parsed.name]) {
-                        summary[parsed.name].assigned++;
+                    const parsed = cell ? JSON.parse(cell) : null;                    
+                    if (parsed && parsed.teacher === teacher) {
+                        const key = shift ? parsed.name : `${parsed.name} (${group.shift === 'morning' ? 'Mañana' : 'Tarde'})`;
+                        if (summary[key]) {
+                            summary[key].assigned++;
+                        }
                     }
                 });
             });
         });
 
-        subjectSummary.innerHTML = '<h3>Resumen de Horas del Profesor</h3>';
-        Object.entries(summary).forEach(([subject, data]) => {
-            const statusClass = data.assigned > data.max ? 'hours-exceeded' : (data.assigned === data.max ? 'hours-complete' : 'hours-incomplete');
-            subjectSummary.innerHTML += `<div class="subject-summary-item ${statusClass}">${subject}: ${data.assigned}/${data.max} horas</div>`;
-        });
+        const title = shift ? `Resumen de Horas del Profesor (${shift === 'morning' ? 'Mañana' : 'Tarde'})` : 'Resumen de Horas del Profesor';
+        subjectSummary.innerHTML = `<h3>${title}</h3>`;
+
+        // Mostrar primero las horas de materias
+        const horasMateriasLectivas = Object.values(summary).reduce((acc, { assigned }) => acc + assigned, 0);
+        if (Object.keys(summary).length > 0) {
+            subjectSummary.innerHTML += '<div class="subject-summary-section"><h4>Materias</h4>';
+            Object.entries(summary).forEach(([subject, data]) => {
+                const statusClass = data.assigned > data.max ? 'hours-exceeded' : (data.assigned === data.max ? 'hours-complete' : 'hours-incomplete');
+                subjectSummary.innerHTML += `<div class="subject-summary-item ${statusClass}">${subject}: ${data.assigned}/${data.max} horas</div>`;
+            });
+            subjectSummary.innerHTML += '</div>';
+        }
+
+        // Mostrar las horas de bloqueo
+        if (blockedHours.lectivo > 0 || blockedHours.complementario > 0) {
+            subjectSummary.innerHTML += '<div class="subject-summary-section"><h4>Bloques</h4>';
+            if (blockedHours.lectivo > 0) {
+                subjectSummary.innerHTML += `<div class="subject-summary-item lectivo">Otras lectivas: ${blockedHours.lectivo} horas</div>`;
+            }
+            if (blockedHours.complementario > 0) {
+                subjectSummary.innerHTML += `<div class="subject-summary-item complementario">Otras complementarias: ${blockedHours.complementario} horas</div>`;
+            }
+            subjectSummary.innerHTML += '</div>';
+        }
+
+        // Mostrar los totales
+        const totalLectivas = horasMateriasLectivas + blockedHours.lectivo;
+        subjectSummary.innerHTML += `
+            <div class="subject-summary-totals" style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px;">
+                <div class="subject-summary-item" style="font-weight: bold;">
+                    Total horas lectivas: ${totalLectivas} (${horasMateriasLectivas} materias + ${blockedHours.lectivo} otras)
+                </div>
+                <div class="subject-summary-item complementario" style="font-weight: bold;">
+                    Total horas complementarias: ${blockedHours.complementario}
+                </div>
+            </div>
+        `;
 
     } else if (state.currentView === 'groupSchedule' && state.currentGroup) {
         // Lógica para el resumen del grupo
@@ -164,6 +226,7 @@ export function updateSubjectSummary() {
 
         if (group.schedule) {
             Object.values(group.schedule).forEach(daySchedule => {
+
                 Object.values(daySchedule).forEach(cell => {
                     const parsed = cell ? JSON.parse(cell) : null;
                     if (parsed && parsed.name && summary[parsed.name]) {
@@ -172,6 +235,7 @@ export function updateSubjectSummary() {
                 });
             });
         }
+
 
         subjectSummary.innerHTML = '<h3>Resumen de Horas</h3>';
         Object.entries(summary).forEach(([subject, { assigned, max }]) => {

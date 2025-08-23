@@ -118,3 +118,36 @@ export function updateGroupConfig() {
         clearGroupData();
     }
 }
+
+export function updateScheduleOptions(select, group) {
+    select.innerHTML = '';
+    select.add(new Option('-', ''));
+    
+    const options = [];
+    group.subjects.forEach(subject => {
+        options.push({
+            value: JSON.stringify({ teacher: subject.teacher, name: subject.name }),
+            text: `${subject.name} (${subject.teacher})`
+        });
+    });
+    
+    options.sort((a, b) => a.text.localeCompare(b.text));
+    options.forEach(opt => select.add(new Option(opt.text, opt.value)));
+    
+    // Si hay un valor original, seleccionarlo
+    const originalValue = select.dataset.originalValue ? JSON.parse(select.dataset.originalValue) : null;
+    if (originalValue) {
+        const matchingOption = options.find(opt => {
+            const optValue = JSON.parse(opt.value);
+            return optValue.teacher === originalValue.teacher && optValue.name === originalValue.name;
+        });
+        
+        if (matchingOption) {
+            select.value = matchingOption.value;
+        } else {
+            select.value = '';
+        }
+    } else {
+        select.value = '';
+    }
+}
