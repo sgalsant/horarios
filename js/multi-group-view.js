@@ -52,8 +52,6 @@ function renderTeachersView(container, shiftFilter) {
 
         const shouldShowMorning = (shiftFilter === 'all' || shiftFilter === 'morning') && Object.keys(morningSchedule).length > 0;
         
-    // Inicializar los botones de colapsar/expandir después de crear todos los horarios
-    initializeToggleButtons();
         const shouldShowAfternoon = (shiftFilter === 'all' || shiftFilter === 'afternoon') && Object.keys(afternoonSchedule).length > 0;
 
         if (shouldShowMorning || shouldShowAfternoon) {
@@ -62,29 +60,35 @@ function renderTeachersView(container, shiftFilter) {
             teacherContainer.innerHTML = `<h2>${teacher}</h2>`;
             
             if (shouldShowMorning) {
-                const morningTable = createScheduleTableDOM('Turno de Mañana', { shift: 'morning' });
+                const morningTable = createScheduleTableDOM(`${teacher} - Turno de Mañana`, { shift: 'morning' });
                 teacherContainer.appendChild(morningTable);
                 populateTeacherSchedule(morningTable.querySelector('tbody'), morningSchedule, teacher, 'morning');
             }
             if (shouldShowAfternoon) {
-                const afternoonTable = createScheduleTableDOM('Turno de Tarde', { shift: 'afternoon' });
+                const afternoonTable = createScheduleTableDOM(`${teacher} - Turno de Tarde`, { shift: 'afternoon' });
                 teacherContainer.appendChild(afternoonTable);
                 populateTeacherSchedule(afternoonTable.querySelector('tbody'), afternoonSchedule, teacher, 'afternoon');
             }
             container.appendChild(teacherContainer);
         }
     });
+    // Inicializar los botones de colapsar/expandir después de crear todos los horarios
+    initializeToggleButtons();
 }
 
 function createScheduleTableDOM(title, group) {
     const section = document.createElement('div');
     section.className = 'schedule-section';
     let shiftText = '';
+    let idSuffix = title.replace(/\s+/g, '-').toLowerCase();
     if (group) {
         const shiftName = group.shift === 'morning' ? 'Mañana' : 'Tarde';
         shiftText = ` (${shiftName})`;
+        if (group.name) {
+            idSuffix += `-${group.name}`.replace(/\s+/g, '-').toLowerCase();
+        }
     }
-    const tableId = `schedule-${title.replace(/\s+/g, '-').toLowerCase()}`;
+    const tableId = `schedule-${idSuffix}`;
     section.innerHTML = `
         <div class="schedule-header">
             <h3>${title}${shiftText}</h3>
@@ -325,7 +329,21 @@ function populateTeacherSchedule(tbody, schedule, teacher, shift) {
                         }
                     }
                     saveTeacherScheduleChange(teacher, day, i, value);
-                    showMultiGroupView();
+                    
+                    // Update UI
+                    select.style.display = 'none';
+                    contentDiv.style.display = 'block';
+                    if (value) {
+                        const { name, groupId } = value;
+                        const group = state.groups[groupId];
+                        contentDiv.textContent = `${name} (${group.name})`;
+                        cell.className = 'schedule-cell ' + getSubjectColorClass(name);
+                    } else {
+                        contentDiv.textContent = '-';
+                        cell.className = 'schedule-cell';
+                    }
+                    contentDiv.dataset.originalValue = selectedValue;
+                    checkConflicts();
                 }
             });
 
