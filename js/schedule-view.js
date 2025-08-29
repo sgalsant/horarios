@@ -1,7 +1,7 @@
 import { state, DAYS, PERIODS, saveState } from './state.js';
 import { updateSubjectSummary } from './subject-management.js';
 import { getSubjectColorClass } from './utils.js';
-import { checkConflicts } from './conflicts.js';
+import { checkConflicts, findConflictForTeacher } from './conflicts.js';
 
 export function initializeScheduleTable() {
     const scheduleTable = document.getElementById('scheduleTable');
@@ -48,6 +48,29 @@ export function initializeScheduleTable() {
 
                 select.addEventListener('change', function() {
                     const value = this.value ? JSON.parse(this.value) : null;
+                    if (value) {
+                        const conflict = findConflictForTeacher(value.teacher, day, i, state.groups[state.currentGroup].name);
+                        if (conflict) {
+                            let message;
+                            if (conflict.blocked) {
+                                message = `El profesor ${value.teacher} tiene esta franja horaria bloqueada por el siguiente motivo: ${conflict.reason}. ¿Desea asignarle la clase de todos modos?`;
+                            } else {
+                                message = `El profesor ${value.teacher} ya tiene clase de ${conflict.subject} en el grupo ${conflict.group.name} a esta hora. ¿Desea reasignarlo?`;
+                            }
+
+                            if (confirm(message)) {
+                                if (conflict.blocked) {
+                                    const blockKey = `${value.teacher}-${day}-${i}`;
+                                    delete state.teacherBlocks[value.teacher][blockKey];
+                                } else {
+                                    delete conflict.group.schedule[day][i];
+                                }
+                            } else {
+                                this.value = contentDiv.dataset.value || '';
+                                return;
+                            }
+                        }
+                    }
                     saveScheduleChange(state.groups[state.currentGroup], day, i, value);
                     initializeScheduleTable();
                     checkConflicts();

@@ -444,6 +444,40 @@ input, select {
     gap: 10px;
 }
 
+.help-link {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.help-link:hover {
+    background-color: #357abd;
+}
+
+.help-page h2 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.help-page h3 {
+    color: var(--primary-color);
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.help-page ol {
+    margin-left: 20px;
+}
+
+.help-page ol li {
+    margin-bottom: 10px;
+}
+
+
 #teacher-schedules .schedule-section {
     margin-bottom: 30px;
 }
@@ -503,4 +537,26 @@ input, select {
 .subject-summary-totals {
     margin-top: 15px;
     padding-top: 10px;
+}
+
+.teacher-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.danger-button {
+    background-color: var(--error-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.danger-button:hover {
+    background-color: #ff4444;
 }

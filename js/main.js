@@ -20,6 +20,7 @@ const deleteBlockBtn = document.getElementById('deleteBlockBtn');
 const exportBtn = document.getElementById('exportBtn');
 const importBtn = document.getElementById('importBtn');
 const importInput = document.getElementById('importInput');
+const clearAllBtn = document.getElementById('clearAllBtn');
 const groupSelect = document.getElementById('groupSelect');
 const newGroupBtn = document.getElementById('newGroupBtn');
 const deleteGroupBtn = document.getElementById('deleteGroupBtn');
@@ -71,6 +72,7 @@ function setupEventListeners() {
     exportBtn.addEventListener('click', exportData);
     importBtn.addEventListener('click', () => importInput.click());
     importInput.addEventListener('change', importData);
+    document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
     
     multiViewType.addEventListener('change', showMultiGroupView);
     shiftFilter.addEventListener('change', showMultiGroupView);
@@ -140,4 +142,27 @@ export function updateTeacherSelect() {
         teacherSelect.appendChild(option);
     });
     teacherSelect.value = state.currentTeacher || '';
+}
+
+function clearAllData() {
+    if (!confirm('¿Está seguro de que desea borrar TODOS los datos? Esta acción eliminará todos los grupos, horarios, materias y asignaciones de profesores. Esta acción no se puede deshacer.')) {
+        return;
+    }
+
+    // Reiniciar el estado a sus valores iniciales
+    state.groups = {};
+    state.currentGroup = null;
+    state.currentTeacher = null;
+    state.teacherBlocks = {};
+    state.currentView = 'groups';
+    saveState();
+
+    // Actualizar la interfaz
+    updateGroupsList();
+    updateTeacherSelect();
+    switchView('groups');
+    
+    // Limpiar los selectores
+    groupSelect.value = '';
+    teacherSelect.value = '';
 }

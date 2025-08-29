@@ -2,7 +2,7 @@ import { state, DAYS, PERIODS, saveState } from './state.js';
 import { getSubjectColorClass } from './utils.js';
 import { updateScheduleOptions } from './group-management.js';
 import { updateTeacherScheduleOptions, saveTeacherScheduleChange } from './teacher-view.js';
-import { checkConflicts } from './conflicts.js';
+import { checkConflicts, findConflictForTeacher, findConflictForGroup } from './conflicts.js';
 
 export function showMultiGroupView() {
     const viewType = document.getElementById('multiViewType').value;
@@ -170,9 +170,33 @@ function populateGroupSchedule(tbody, group) {
 
             select.addEventListener('change', () => {
                 const selectedValue = select.value;
+                const value = selectedValue ? JSON.parse(selectedValue) : null;
+
+                if (value) {
+                    const conflict = findConflictForTeacher(value.teacher, day, i, group.name);
+                    if (conflict) {
+                        let message;
+                        if (conflict.blocked) {
+                            message = `El profesor ${value.teacher} tiene esta franja horaria bloqueada por el siguiente motivo: ${conflict.reason}. ¿Desea asignarle la clase de todos modos?`;
+                        } else {
+                            message = `El profesor ${value.teacher} ya tiene clase de ${conflict.subject} en el grupo ${conflict.group.name} a esta hora. ¿Desea reasignarlo?`;
+                        }
+
+                        if (confirm(message)) {
+                            if (conflict.blocked) {
+                                const blockKey = `${value.teacher}-${day}-${i}`;
+                                delete state.teacherBlocks[value.teacher][blockKey];
+                            } else {
+                                delete conflict.group.schedule[day][i];
+                            }
+                        } else {
+                            select.value = contentDiv.dataset.originalValue || '';
+                            return;
+                        }
+                    }
+                }
                 
                 if (selectedValue) {
-                    const value = JSON.parse(selectedValue);
                     const { teacher, name } = value;
                     
                     if (!group.schedule) group.schedule = {};
@@ -287,9 +311,20 @@ function populateTeacherSchedule(tbody, schedule, teacher, shift) {
                     blockModal.style.display = 'block';
                 } else {
                     const value = selectedValue ? JSON.parse(selectedValue) : null;
+                    if (value) {
+                        const group = state.groups[value.groupId];
+                        const conflict = findConflictForGroup(group.name, day, i, teacher);
+                        if (conflict) {
+                            const message = `El profesor ${conflict.teacher} ya está asignado a la materia ${conflict.subject} en esta hora para este grupo. ¿Desea reasignarlo?`;
+                            if (confirm(message)) {
+                                saveTeacherScheduleChange(conflict.teacher, day, i, null);
+                            } else {
+                                select.value = contentDiv.dataset.originalValue || '';
+                                return;
+                            }
+                        }
+                    }
                     saveTeacherScheduleChange(teacher, day, i, value);
-                    select.style.display = 'none';
-                    contentDiv.style.display = 'block';
                     showMultiGroupView();
                 }
             });

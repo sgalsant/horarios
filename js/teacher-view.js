@@ -1,5 +1,5 @@
 import { state, saveState, DAYS, PERIODS } from './state.js';
-import { checkConflicts } from './conflicts.js';
+import { checkConflicts, findConflictForGroup } from './conflicts.js';
 import { getSubjectColorClass } from './utils.js';
 import { updateSubjectSummary } from './subject-management.js';
 
@@ -23,7 +23,12 @@ export function updateTeacherView() {
     const hasMorningAssignments = allGroups.some(g => g.shift === 'morning' && hasScheduled(g, teacher)) || teacherBlocks.some(b => b.shift === 'morning');
     const hasAfternoonAssignments = allGroups.some(g => g.shift === 'afternoon' && hasScheduled(g, teacher)) || teacherBlocks.some(b => b.shift === 'afternoon');
 
-    let html = `<div id="teacher-schedules"><h2>Horario de ${teacher}</h2>`;
+    let html = `
+        <div id="teacher-schedules">
+            <div class="teacher-header">
+                <h2>Horario de ${teacher}</h2>
+                <button id="clearTeacherSchedule" class="danger-button">Limpiar horario</button>
+            </div>`;
     if (!hasMorningAssignments && !hasAfternoonAssignments) {
         html += `<p style="text-align:center; margin-top:20px;">Este profesor no tiene asignaciones.</p>`;
     } else {
@@ -75,6 +80,11 @@ export function updateTeacherView() {
     // Actualizar el resumen global
     updateSubjectSummary();
     
+    // Inicializar el botón de limpiar horario
+    const clearButton = document.getElementById('clearTeacherSchedule');
+    if (clearButton) {
+        clearButton.addEventListener('click', clearTeacherSchedule);
+    }
 }
 
 function hasScheduled(group, teacher) {
@@ -270,6 +280,19 @@ function populateTeacherTable(teacher, tbody, shift) {
                     blockModal.style.display = 'block';
                 } else {
                     const value = selectedValue ? JSON.parse(selectedValue) : null;
+                    if (value) {
+                        const group = state.groups[value.groupId];
+                        const conflict = findConflictForGroup(group.name, day, i, teacher);
+                        if (conflict) {
+                            const message = `El profesor ${conflict.teacher} ya está asignado a la materia ${conflict.subject} en esta hora para este grupo. ¿Desea reasignarlo?`;
+                            if (confirm(message)) {
+                                delete group.schedule[day][i];
+                            } else {
+                                select.value = contentDiv.dataset.originalValue || '';
+                                return;
+                            }
+                        }
+                    }
                     
                     // Primero guardar en el estado
                     if (value) {
@@ -400,37 +423,16 @@ export function saveTeacherScheduleChange(teacher, day, period, value) {
         }
     });
 
-    // Find the cell-content and update its content
-    const cells = document.querySelectorAll('.schedule-cell');
-    const targetCell = Array.from(cells).find(cell => {
-        const select = cell.querySelector('select');
-        return select && select.dataset.day === day && select.dataset.period === period;
-    });
-
-    if (targetCell) {
-        const contentDiv = targetCell.querySelector('.cell-content');
-        if (contentDiv) {
-            if (value) {
-                const { groupId, name } = value;
-                const group = state.groups[groupId];
-                if (group) {
-                    if (!group.schedule[day]) group.schedule[day] = {};
-                    group.schedule[day][period] = JSON.stringify({ name, teacher });
-                    contentDiv.textContent = `${name} (${group.name})`;
-                    // Actualizar las clases CSS
-                    targetCell.className = 'schedule-cell';
-                    targetCell.classList.add(getSubjectColorClass(name));
-                }
-            } else {
-                contentDiv.textContent = '-';
-                // Limpiar las clases CSS
-                targetCell.className = 'schedule-cell';
-            }
-            contentDiv.style.display = 'block';
-            // Actualizar el valor original para futuros cambios
-            contentDiv.dataset.originalValue = value ? JSON.stringify({ name: value.name, groupId: value.groupId }) : '';
+    if (value) {
+        const { groupId, name } = value;
+        const group = state.groups[groupId];
+        if (group) {
+            if (!group.schedule) group.schedule = {};
+            if (!group.schedule[day]) group.schedule[day] = {};
+            group.schedule[day][period] = JSON.stringify({ name, teacher, groupId });
         }
     }
+
     saveState();
 }
 
@@ -585,4 +587,39 @@ function initializeModalEvents() {
             cleanupCellEditing();
         }
     });
+}
+
+function clearTeacherSchedule() {
+    const teacher = state.currentTeacher;
+    if (!teacher) return;
+
+    if (!confirm(`¿Está seguro de que desea eliminar todas las asignaciones y bloqueos del horario de ${teacher}?`)) {
+        return;
+    }
+
+    // Limpiar asignaciones en grupos
+    Object.values(state.groups).forEach(group => {
+        if (group.schedule) {
+            Object.keys(group.schedule).forEach(day => {
+                Object.keys(group.schedule[day]).forEach(period => {
+                    if (group.schedule[day][period]) {
+                        const cellData = JSON.parse(group.schedule[day][period]);
+                        if (cellData && cellData.teacher === teacher) {
+                            group.schedule[day][period] = null;
+                        }
+                    }
+                });
+            });
+        }
+    });
+
+    // Limpiar bloques del profesor
+    if (state.teacherBlocks[teacher]) {
+        delete state.teacherBlocks[teacher];
+    }
+
+    saveState();
+    updateTeacherView();
+    checkConflicts();
+    updateSubjectSummary();
 }

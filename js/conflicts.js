@@ -1,5 +1,36 @@
 import { state, DAYS, PERIODS } from './state.js';
 
+export function findConflictForTeacher(teacher, day, period, currentGroupName) {
+    // Check for conflicts with other groups
+    for (const group of Object.values(state.groups)) {
+        if (group.name !== currentGroupName && group.schedule && group.schedule[day] && group.schedule[day][period]) {
+            const data = typeof group.schedule[day][period] === 'string' ? JSON.parse(group.schedule[day][period]) : group.schedule[day][period];
+            if (data && data.teacher === teacher) {
+                return { group, subject: data.name };
+            }
+        }
+    }
+
+    // Check for blocked slots
+    const blockKey = `${teacher}-${day}-${period}`;
+    if (state.teacherBlocks[teacher] && state.teacherBlocks[teacher][blockKey]) {
+        return { blocked: true, reason: state.teacherBlocks[teacher][blockKey].reason };
+    }
+
+    return null;
+}
+
+export function findConflictForGroup(groupName, day, period, currentTeacher) {
+    const group = Object.values(state.groups).find(g => g.name === groupName);
+    if (group && group.schedule && group.schedule[day] && group.schedule[day][period]) {
+        const data = typeof group.schedule[day][period] === 'string' ? JSON.parse(group.schedule[day][period]) : group.schedule[day][period];
+        if (data && data.teacher && data.teacher !== currentTeacher) {
+            return { teacher: data.teacher, subject: data.name };
+        }
+    }
+    return null;
+}
+
 export function checkConflicts() {
     const conflicts = [];
     const teacherSchedule = {};
