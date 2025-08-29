@@ -1,9 +1,13 @@
 import { state } from './state.js';
 
-export function getSubjectColorClass(subjectName) {
-    if (!state.subjectColors.has(subjectName)) {
-        const colorIndex = state.subjectColors.size % 8;
-        state.subjectColors.set(subjectName, `subject-color-${colorIndex}`);
+export function getSubjectColorClass(subject) {
+    if (subject && subject.color) {
+        return subject.color;
     }
-    return state.subjectColors.get(subjectName);
+
+    if (!state.subjectColors.has(subject.name)) {
+        const colorIndex = state.subjectColors.size % 8;
+        state.subjectColors.set(subject.name, `subject-color-${colorIndex}`);
+    }
+    return state.subjectColors.get(subject.name);
 }

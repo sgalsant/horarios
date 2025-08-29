@@ -128,7 +128,12 @@ function populateGroupSchedule(tbody, group) {
                     name: parsed.name
                 };
                 contentDiv.textContent = `${cellData.name} (${cellData.teacher})`;
-                cell.classList.add(getSubjectColorClass(cellData.name));
+                const subject = group.subjects.find(s => s.name === cellData.name && s.teacher === cellData.teacher);
+                if (subject && subject.color) {
+                    cell.style.backgroundColor = subject.color;
+                } else {
+                    cell.classList.add(getSubjectColorClass(cellData));
+                }
             } else {
                 contentDiv.textContent = '-';
             }
@@ -211,7 +216,14 @@ function populateGroupSchedule(tbody, group) {
                     contentDiv.dataset.originalValue = JSON.stringify(newData);
                     
                     contentDiv.textContent = `${name} (${teacher})`;
-                    cell.className = 'schedule-cell ' + getSubjectColorClass(name);
+                    const subject = group.subjects.find(s => s.name === name && s.teacher === teacher);
+                    if (subject && subject.color) {
+                        cell.style.backgroundColor = subject.color;
+                        cell.className = 'schedule-cell'; // Remove other color classes
+                    } else {
+                        cell.className = 'schedule-cell ' + getSubjectColorClass(subject);
+                        cell.style.backgroundColor = ''; // Remove inline style
+                    }
                 } else {
                     // Si no hay valor seleccionado, limpiar la celda
                     if (group.schedule?.[day]?.[i]) {
@@ -219,6 +231,7 @@ function populateGroupSchedule(tbody, group) {
                     }
                     contentDiv.textContent = '-';
                     cell.className = 'schedule-cell';
+                    cell.style.backgroundColor = '';
                     contentDiv.dataset.originalValue = 'null';
                 }
                 
@@ -260,7 +273,13 @@ function populateTeacherSchedule(tbody, schedule, teacher, shift) {
                 cell.classList.add('blocked-cell');
             } else if (cellData) {
                 contentDiv.textContent = `${cellData.name} (${cellData.groupName})`;
-                cell.classList.add(getSubjectColorClass(cellData.name));
+                const group = Object.values(state.groups).find(g => g.name === cellData.groupName);
+                const subject = group.subjects.find(s => s.name === cellData.name && s.teacher === teacher);
+                if (subject && subject.color) {
+                    cell.style.backgroundColor = subject.color;
+                } else {
+                    cell.classList.add(getSubjectColorClass(cellData));
+                }
             } else {
                 contentDiv.textContent = '-';
             }
@@ -337,10 +356,18 @@ function populateTeacherSchedule(tbody, schedule, teacher, shift) {
                         const { name, groupId } = value;
                         const group = state.groups[groupId];
                         contentDiv.textContent = `${name} (${group.name})`;
-                        cell.className = 'schedule-cell ' + getSubjectColorClass(name);
+                        const subject = group.subjects.find(s => s.name === name && s.teacher === teacher);
+                        if (subject && subject.color) {
+                            cell.style.backgroundColor = subject.color;
+                            cell.className = 'schedule-cell'; // Remove other color classes
+                        } else {
+                            cell.className = 'schedule-cell ' + getSubjectColorClass(subject);
+                            cell.style.backgroundColor = ''; // Remove inline style
+                        }
                     } else {
                         contentDiv.textContent = '-';
                         cell.className = 'schedule-cell';
+                        cell.style.backgroundColor = '';
                     }
                     contentDiv.dataset.originalValue = selectedValue;
                     checkConflicts();

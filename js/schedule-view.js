@@ -71,7 +71,7 @@ export function initializeScheduleTable() {
                             }
                         }
                     }
-                    saveScheduleChange(state.groups[state.currentGroup], day, i, value);
+                    saveScheduleChange(state.groups[state.currentGroup], day, i, value, cell);
                     initializeScheduleTable();
                     checkConflicts();
                 });
@@ -118,12 +118,17 @@ export function loadGroupSchedule(currentGroup, tbody) {
         if (parsed) {
             contentDiv.textContent = `${parsed.name} (${parsed.teacher})`;
             contentDiv.dataset.value = JSON.stringify(parsed);
-            cell.classList.add(getSubjectColorClass(parsed.name));
+            const subject = currentGroup.subjects.find(s => s.name === parsed.name && s.teacher === parsed.teacher);
+            if (subject && subject.color) {
+                cell.style.backgroundColor = subject.color;
+            } else {
+                cell.classList.add(getSubjectColorClass(subject));
+            }
         }
     });
 }
 
-function saveScheduleChange(group, day, period, value) {
+function saveScheduleChange(group, day, period, value, cell) {
     if (!group.schedule) group.schedule = {};
     if (!group.schedule[day]) group.schedule[day] = {};
     
@@ -133,4 +138,25 @@ function saveScheduleChange(group, day, period, value) {
         delete group.schedule[day][period];
     }
     saveState();
+
+    // Update UI for the specific cell
+    const contentDiv = cell.querySelector('.cell-content');
+    if (contentDiv) {
+        if (value) {
+            contentDiv.textContent = `${value.name} (${value.teacher})`;
+            contentDiv.dataset.value = JSON.stringify(value);
+            const subject = group.subjects.find(s => s.name === value.name && s.teacher === value.teacher);
+            if (subject && subject.color) {
+                cell.style.backgroundColor = subject.color;
+                cell.className = 'schedule-cell'; // Remove other color classes
+            } else {
+                cell.className = 'schedule-cell ' + getSubjectColorClass(subject);
+                cell.style.backgroundColor = ''; // Remove inline style
+            }
+        } else {
+            contentDiv.textContent = '-';
+            cell.className = 'schedule-cell';
+            cell.style.backgroundColor = '';
+        }
+    }
 }

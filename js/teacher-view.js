@@ -178,7 +178,13 @@ function populateTeacherTable(teacher, tbody, shift) {
                     contentDiv.dataset.originalValue = JSON.stringify({ blocked: true, type: cellData.type, reason: cellData.reason });
                 } else {
                     contentDiv.textContent = `${cellData.name} (${groupName})`;
-                    cell.classList.add(getSubjectColorClass(cellData.name));
+                    const group = Object.values(state.groups).find(g => g.name === groupName);
+                    const subject = group.subjects.find(s => s.name === cellData.name && s.teacher === teacher);
+                    if (subject && subject.color) {
+                        cell.style.backgroundColor = subject.color;
+                    } else {
+                        cell.classList.add(getSubjectColorClass(cellData));
+                    }
                     // Para materias asignadas, necesitamos guardar también el groupId
                     // Buscar el grupo y asignación actual
                     const [currentGroupId] = Object.entries(state.groups).find(([id, g]) => 
@@ -250,15 +256,8 @@ function populateTeacherTable(teacher, tbody, shift) {
 
             select.addEventListener('change', () => {
                 isChanging = true;
-                const blockModal = document.getElementById('blockModal');
                 const selectedValue = select.value;
-
-                // Forzar que se muestre el modal para cualquier selección de bloqueo
-                const isReselectingBlock = selectedValue === 'BLOCKED';
-                
-                // Resetear el valor original para permitir la misma selección después
-                select.dataset.originalValue = '';
-                if (selectedValue === 'BLOCKED' || isReselectingBlock) {
+                if (selectedValue === 'BLOCKED') {
                     const blockModal = document.getElementById('blockModal');
                     const blockReasonInput = document.getElementById('blockReason');
                     const blockTypeInput = document.getElementById('blockType');
@@ -334,10 +333,18 @@ function populateTeacherTable(teacher, tbody, shift) {
                         const { name } = value;
                         const group = state.groups[value.groupId];
                         contentDiv.textContent = `${name} (${group.name})`;
-                        cell.className = 'schedule-cell ' + getSubjectColorClass(name);
+                        const subject = group.subjects.find(s => s.name === name && s.teacher === teacher);
+                        if (subject && subject.color) {
+                            cell.style.backgroundColor = subject.color;
+                            cell.className = 'schedule-cell'; // Remove other color classes
+                        } else {
+                            cell.className = 'schedule-cell ' + getSubjectColorClass(subject);
+                            cell.style.backgroundColor = ''; // Remove inline style
+                        }
                     } else {
                         contentDiv.textContent = '-';
                         cell.className = 'schedule-cell';
+                        cell.style.backgroundColor = '';
                     }
                     contentDiv.dataset.originalValue = selectedValue;
                     checkConflicts();
@@ -434,6 +441,37 @@ export function saveTeacherScheduleChange(teacher, day, period, value) {
     }
 
     saveState();
+
+    // Update UI for the specific cell
+    const cells = document.querySelectorAll('.schedule-cell');
+    const targetCell = Array.from(cells).find(cell => {
+        const select = cell.querySelector('select');
+        return select && select.dataset.day === day && select.dataset.period === period;
+    });
+
+    if (targetCell) {
+        const contentDiv = targetCell.querySelector('.cell-content');
+        if (contentDiv) {
+            if (value) {
+                const { name, groupId } = value;
+                const group = state.groups[groupId];
+                contentDiv.textContent = `${name} (${group.name})`;
+                const subject = group.subjects.find(s => s.name === name && s.teacher === teacher);
+                if (subject && subject.color) {
+                    targetCell.style.backgroundColor = subject.color;
+                    targetCell.className = 'schedule-cell'; // Remove other color classes
+                } else {
+                    targetCell.className = 'schedule-cell ' + getSubjectColorClass(subject);
+                    targetCell.style.backgroundColor = ''; // Remove inline style
+                }
+            } else {
+                contentDiv.textContent = '-';
+                targetCell.className = 'schedule-cell';
+                targetCell.style.backgroundColor = '';
+            }
+            contentDiv.dataset.originalValue = value ? JSON.stringify({ name: value.name, groupId: value.groupId }) : '';
+        }
+    }
 }
 
 export function handleBlockConfirmation() {

@@ -34,6 +34,7 @@ export function updateSubjects() {
             <input type="text" class="subject-name" placeholder="Nombre de la materia" value="${subject.name || ''}">
             <input type="number" class="subject-hours" placeholder="Horas" value="${subject.hours || 1}" min="1">
             <input type="text" class="subject-teacher" placeholder="Profesor" value="${subject.teacher || ''}">
+            <input type="color" class="subject-color" value="${subject.color || '#ffffff'}">
             <button type="button" class="remove-subject">Eliminar</button>
         `;
         
@@ -50,6 +51,7 @@ export function updateSubjects() {
                     subjectToUpdate.name = subjectItem.querySelector('.subject-name').value;
                     subjectToUpdate.hours = parseInt(subjectItem.querySelector('.subject-hours').value) || 1;
                     subjectToUpdate.teacher = subjectItem.querySelector('.subject-teacher').value;
+                    subjectToUpdate.color = subjectItem.querySelector('.subject-color').value;
 
                     // Actualizar el nombre y profesor en todo el horario
                     Object.values(state.groups).forEach(g => {
